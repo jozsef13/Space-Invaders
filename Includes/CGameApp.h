@@ -65,7 +65,11 @@ private:
 	void		addEnemies(int noEnemies);
 	void		removeDead();
 	bool		Collision(CPlayer* p1, CPlayer* p2);
-	bool		bulletCollision(CPlayer* p1, CPlayer* p2, int x);
+	bool		bulletCollision(const Sprite& bullet, CPlayer& p1);
+	void		fireBullet(const Vec2 position, const Vec2 velocity, int x);
+	bool		detectBulletCollision(const Sprite* bullet);
+	void		enemyFire();
+	void		EnemyMove();
 
 	
 	//-------------------------------------------------------------------------
@@ -99,6 +103,14 @@ private:
 	CPlayer*				m_pPlayer;
 	CPlayer*				m_pPlayer2;
 	std::list<CPlayer*>		m_enemies;
+
+	std::list<Sprite*>		bullets;
+	std::list<Sprite*>		aliensExplosion;
+	int						frameCounter = 0;
+
+	std::list<Sprite*>		p1Life;
+	std::list<Sprite*>		p2Life;
+
 };
 
 #endif // _CGAMEAPP_H_

@@ -30,6 +30,7 @@ public:
 	Vec2 mPosition;
 	Vec2 mVelocity;
 	int frameCounter;
+	int team;
 
 private:
 	// Make copy constructor and assignment operator private
@@ -66,6 +67,7 @@ public:
 public:
 	void SetFrame(int iIndex);
 	int GetFrameCount() { return miFrameCount; }
+	void SetFrameEnemy(int iIndex);
 
 	virtual void draw();
 	

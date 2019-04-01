@@ -51,6 +51,8 @@ Sprite::Sprite(const char *szImageFile, COLORREF crTransparentColor)
 	GetObject(mhImage, sizeof(BITMAP), &mImageBM);
 
 	frameCounter = 0;
+
+	team = 1;
 }
 
 Sprite::~Sprite()
@@ -201,6 +203,15 @@ void AnimatedSprite::SetFrame(int iIndex)
 
 	mptFrameCrop.x = mptFrameStartCrop.x + iIndex % 4 * miFrameWidth;
 	mptFrameCrop.y = mptFrameStartCrop.y + iIndex / 4 * miFrameHeight;
+}
+
+void AnimatedSprite::SetFrameEnemy(int iIndex)
+{
+	// index must be in range
+	assert(iIndex >= 0 && iIndex < miFrameCount && "AnimatedSprite frame Index must be in range!");
+
+	mptFrameCrop.x = mptFrameStartCrop.x + iIndex * miFrameWidth;
+	//mptFrameCrop.y = mptFrameStartCrop.y + iIndex * miFrameHeight;
 }
 
 void AnimatedSprite::draw()

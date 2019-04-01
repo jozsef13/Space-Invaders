@@ -14,6 +14,8 @@
 #include <ctime> 
 
 extern HINSTANCE g_hInst;
+bool		p1Shoot = false;
+bool		p2Shoot = false;
 
 //-----------------------------------------------------------------------------
 // CGameApp Member Functions
@@ -262,18 +264,12 @@ LRESULT CGameApp::DisplayWndProc( HWND hWnd, UINT Message, WPARAM wParam, LPARAM
 				PostQuitMessage(0);
 				break;
 			case VK_RETURN:
-				fTimer = SetTimer(m_hWnd, 1, 50, NULL);
+				fTimer = SetTimer(m_hWnd, 1, 100, NULL);
 				m_pPlayer->Explode();
 				break;
 			case 0x51:
-				fTimer = SetTimer(m_hWnd, 1, 50, NULL);
+				fTimer = SetTimer(m_hWnd, 1, 100, NULL);
 				m_pPlayer2->Explode();
-				break;
-			case VK_SPACE:
-				m_pPlayer->Shoot(1);
-				break;
-			case 'P':
-				m_pPlayer2->Shoot(1);
 				break;
 			}
 			break;
@@ -283,16 +279,16 @@ LRESULT CGameApp::DisplayWndProc( HWND hWnd, UINT Message, WPARAM wParam, LPARAM
 			{
 			case 1:
 				if (!m_pPlayer->AdvanceExplosion()) {
-					fTimer = SetTimer(m_hWnd, 1, 50, NULL);
+					fTimer = SetTimer(m_hWnd, 1, 100, NULL);
 				}
 				if (!m_pPlayer2->AdvanceExplosion()) {
-					fTimer = SetTimer(m_hWnd, 1, 50, NULL);
+					fTimer = SetTimer(m_hWnd, 1, 100, NULL);
 				}
 				for (auto enem : m_enemies)
 				{
-					if (!enem->AdvanceExplosion())
+					if (enem->EnemyAdvanceExplosion())
 					{
-						fTimer = SetTimer(m_hWnd, 1, 50, NULL);
+						fTimer = SetTimer(m_hWnd, 1, 100, NULL);
 					}
 				}
 			}
@@ -316,9 +312,10 @@ LRESULT CGameApp::DisplayWndProc( HWND hWnd, UINT Message, WPARAM wParam, LPARAM
 bool CGameApp::BuildObjects()
 {
 	m_pBBuffer = new BackBuffer(m_hWnd, m_nViewWidth, m_nViewHeight);
-	m_pPlayer = new CPlayer(m_pBBuffer, 1);
-	m_pPlayer2 = new CPlayer(m_pBBuffer, 1);
-	addEnemies(ceil((m_screenSize.x - 600) / 100) * 3);
+	m_pPlayer = new CPlayer(m_pBBuffer, "data/ship1.bmp");
+	m_pPlayer2 = new CPlayer(m_pBBuffer, "data/ship2.bmp");
+
+	addEnemies(ceil((m_screenSize.x - 600) / 100) * 4);
 
 	if(!m_imgBackground.LoadBitmapFromFile("data/Background.bmp", GetDC(m_hWnd)))
 		return false;
@@ -361,6 +358,7 @@ void CGameApp::ReleaseObjects( )
 		delete m_pBBuffer;
 		m_pBBuffer = NULL;
 	}
+
 }
 
 //-----------------------------------------------------------------------------
@@ -420,12 +418,31 @@ void CGameApp::ProcessInput( )
 	if ( pKeyBuffer[ VK_DOWN  ] & 0xF0 ) Direction |= CPlayer::DIR_BACKWARD;
 	if ( pKeyBuffer[ VK_LEFT  ] & 0xF0 ) Direction |= CPlayer::DIR_LEFT;
 	if ( pKeyBuffer[ VK_RIGHT ] & 0xF0 ) Direction |= CPlayer::DIR_RIGHT;
+	if (pKeyBuffer[VK_SPACE] & 0xF0)
+	{
+		p1Shoot = true;
+	}
+	else
+	{
+		if (p1Shoot)
+			fireBullet(m_pPlayer->Position(), Vec2(0, -250), 1);
+		p1Shoot = false;
+	}
 
 	if (pKeyBuffer[0x57] & 0xF0) Direction1 |= CPlayer::DIR_FORWARD;
 	if (pKeyBuffer[0x53] & 0xF0) Direction1 |= CPlayer::DIR_BACKWARD;
 	if (pKeyBuffer[0x41] & 0xF0) Direction1 |= CPlayer::DIR_LEFT;
 	if (pKeyBuffer[0x44] & 0xF0) Direction1 |= CPlayer::DIR_RIGHT;
-
+	if (pKeyBuffer['P'] & 0xF0)
+	{
+		p2Shoot = true;
+	}
+	else
+	{
+		if (p2Shoot)
+			fireBullet(m_pPlayer2->Position(), Vec2(0, -250), 1);
+		p2Shoot = false;
+	}
 	
 	// Move the player
 	m_pPlayer->Move(Direction);
@@ -456,9 +473,23 @@ void CGameApp::AnimateObjects()
 	m_pPlayer->Update(m_Timer.GetTimeElapsed());
 	m_pPlayer2->Update(m_Timer.GetTimeElapsed());
 
+	for (auto bul : bullets)
+	{
+		bul->update(m_Timer.GetTimeElapsed());
+
+		if (detectBulletCollision(bul) || bul->mPosition.y >= m_screenSize.y || bul->mPosition.y <= 0)
+		{
+			bullets.remove(bul);
+			break;
+		}
+	}
+
+	EnemyMove();
 	for (auto enem : m_enemies) {
 		enem->Update(m_Timer.GetTimeElapsed());
 	}
+
+	enemyFire();
 }
 
 //-----------------------------------------------------------------------------
@@ -475,101 +506,61 @@ void CGameApp::DrawObjects()
 
 	m_pPlayer2->Draw();
 
+	for (auto bul : bullets)
+	{
+		bul->draw();
+	}
+
 	for (auto enem : m_enemies) 
 	{
 		enem->Draw();
 		enem->frameCounter()++;
 	}
-
-	m_pPlayer->fire(-1, 0);
-
-	m_pPlayer2->fire(-1, 0);
-
-	srand(time(NULL));
-
-	for (auto enem : m_enemies) 
-	{
-		if (enem->frameCounter() == 1200 )
-		{
-			enem->frameCounter() = rand() % 1000;
-			enem->Shoot(2);
-		}
-	}
-
-	for (auto enem : m_enemies)
-	{
-		enem->fire(1, 0);
-	}
-
-
-	for (auto enem : m_enemies)
-	{
-		if (bulletCollision(m_pPlayer, enem, 1))
-		{
-			enem->Explode();
-		}
-
-		if (bulletCollision(m_pPlayer2, enem, 1))
-		{
-			enem->Explode();
-		}
-
-		if (bulletCollision(enem, m_pPlayer, 2) && !enem->playerIsDead())
-		{
-			m_pPlayer->Explode();
-		}
-
-		if (bulletCollision(enem, m_pPlayer2, 2) && !enem->playerIsDead())
-		{
-			m_pPlayer2->Explode();
-		}
-	}
-
-	if (Collision(m_pPlayer, m_pPlayer2)) 
-	{
-		m_pPlayer->Explode();
-		m_pPlayer->Position() = Vec2(600, 700);
-		m_pPlayer2->Explode();
-		m_pPlayer2->Position() = Vec2(900, 700);
-	}
-
-	/*if (m_pPlayer->bulletCollision(m_pPlayer, m_pPlayer2, 1)) 
-	{
-		m_pPlayer2->Explode();
-	}
-
-	if (m_pPlayer->bulletCollision(m_pPlayer2, m_pPlayer, 1)) 
-	{
-		m_pPlayer->Explode();
-	}*/
 	
 	m_pBBuffer->present();
 }
 
 void CGameApp::addEnemies(int noEnemies)
 {
-	srand(time(NULL));
 	Vec2 position = Vec2(300, 50);
+	srand(time(NULL));
+	int ok = 1;
 
 	for (int it = 0; it != noEnemies; ++it) {
-		m_enemies.push_back(new CPlayer(m_pBBuffer, 2));
+		if (ok > 3) ok = 1;
+
+		switch (ok)
+		{
+		case 1:
+			m_enemies.push_back(new CPlayer(m_pBBuffer, "data/alien1p1.bmp"));
+			break;
+		case 2:
+			m_enemies.push_back(new CPlayer(m_pBBuffer, "data/alien2p1.bmp"));
+			break;
+		case 3:
+			m_enemies.push_back(new CPlayer(m_pBBuffer, "data/alien3p1.bmp"));
+			break;
+		}
+		
 		m_enemies.back()->Position() = position;
 		m_enemies.back()->Velocity() = Vec2(0, 0);
 		m_enemies.back()->frameCounter() = rand() % 1000;
 
 		position.x += 100;
 		if (position.x > m_screenSize.x - 300) {
+			ok++;
 			position.x = 300;
-			position.y += 150;
+			position.y += 100;
 		}
 	}
 }
+
 
 void CGameApp::removeDead()
 {
 	for (auto enem : m_enemies)
 	{
-		if (enem->playerIsDead())
+		if (enem->isDead)
 		{
 			m_enemies.remove(enem);
 			break;
@@ -580,16 +571,16 @@ void CGameApp::removeDead()
 bool CGameApp::Collision(CPlayer* p1, CPlayer* p2)
 {
 	RECT r;
-	r.left = p1->Position().x - p1->positionWidth() / 2;
-	r.right = p1->Position().x + p1->positionWidth() / 2;
-	r.top = p1->Position().y - p1->positionHeight() / 2;
-	r.bottom = p1->Position().y + p1->positionHeight() / 2;
+	r.left = p1->Position().x - p1->getSize().x / 2;
+	r.right = p1->Position().x + p1->getSize().x / 2;
+	r.top = p1->Position().y - p1->getSize().y / 2;
+	r.bottom = p1->Position().y + p1->getSize().y / 2;
 
 	RECT r2;
-	r2.left = p2->Position().x - p2->positionWidth() / 2;
-	r2.right = p2->Position().x + p2->positionWidth() / 2;
-	r2.top = p2->Position().y - p2->positionHeight() / 2;
-	r2.bottom = p2->Position().y + p2->positionHeight() / 2;
+	r2.left = p2->Position().x - p2->getSize().x / 2;
+	r2.right = p2->Position().x + p2->getSize().x / 2;
+	r2.top = p2->Position().y - p2->getSize().y / 2;
+	r2.bottom = p2->Position().y + p2->getSize().y / 2;
 
 
 	if (r.right > r2.left && r.left < r2.right && r.bottom>r2.top && r.top < r2.bottom) {
@@ -599,30 +590,108 @@ bool CGameApp::Collision(CPlayer* p1, CPlayer* p2)
 	return false;
 }
 
-bool CGameApp::bulletCollision(CPlayer* p1, CPlayer* p2, int x)
+bool CGameApp::detectBulletCollision(const Sprite* bullet)
 {
-	RECT r;
-	r.left = p2->Position().x - p2->positionWidth() / 2;
-	r.right = p2->Position().x + p2->positionWidth() / 2;
-	r.top = p2->Position().y - p2->positionHeight() / 2;
-	r.bottom = p2->Position().y + p2->positionHeight() / 2;
-
-	RECT r2;
-	r2.left = p1->bullet->mPosition.x - p1->bullet->width() / 2;
-	r2.right = p1->bullet->mPosition.x + p1->bullet->width() / 2;
-	r2.top = p1->bullet->mPosition.y - p1->bullet->height() / 2;
-	r2.bottom = p1->bullet->mPosition.y + p1->bullet->height() / 2;
-
-
-	if (r.right > r2.left && r.left < r2.right && r.bottom>r2.top && r.top < r2.bottom) {
-		p1->bullet->mPosition.y = -100;
+	if (bulletCollision(*bullet, *m_pPlayer) && bullet->team != 1)
+	{
+		m_pPlayer->Explode();
 		return true;
 	}
-	if (r.left > r2.right && r.right < r2.left && r.bottom>r2.top && r.top < r2.bottom) {
-		p1->bullet->mPosition.y = -100;
+
+	if (bulletCollision(*bullet, *m_pPlayer2) && bullet->team != 1)
+	{
+		m_pPlayer2->Explode();
 		return true;
+	}
+
+	for (auto enem : m_enemies)
+	{
+		if (bulletCollision(*bullet, *enem) && bullet->team == 1)
+		{
+			enem->EnemyExplode();
+			return true;
+		}
 	}
 
 	return false;
+}
 
+bool CGameApp::bulletCollision(const Sprite& bullet, CPlayer& p1)
+{
+	if (bullet.mPosition.x >= p1.Position().x - (p1.getSize().x / 2))
+		if (bullet.mPosition.x <= p1.Position().x + (p1.getSize().x / 2))
+			if (bullet.mPosition.y >= p1.Position().y - (p1.getSize().y / 2))
+				if (bullet.mPosition.y <= p1.Position().y + (p1.getSize().y / 2))
+					return true;
+
+	return false;
+
+}
+
+void CGameApp::fireBullet(const Vec2 position, const Vec2 velocity, int x)
+{
+	if (x == 1)
+	{
+		bullets.push_back(new Sprite("data/bullet.bmp", RGB(0xff, 0x00, 0xff)));
+	}
+	else
+	{
+		bullets.push_back(new Sprite("data/bulletaliens.bmp", RGB(0xff, 0x00, 0xff)));
+	}
+
+	bullets.back()->setBackBuffer(m_pBBuffer);
+	bullets.back()->mPosition = position;
+	bullets.back()->mVelocity = velocity;
+	bullets.back()->team = x;
+
+	if (velocity.y < 0)
+	{
+		bullets.back()->mPosition.y -= 75;
+	}
+	else
+	{
+		bullets.back()->mPosition.y += 75;
+	}
+}
+
+void CGameApp::enemyFire()
+{
+	srand(time(NULL));
+
+	for (auto enem : m_enemies)
+	{
+		if (enem->frameCounter() == 1500)
+		{
+			enem->frameCounter() = rand() % 1000;
+			fireBullet(enem->Position(), Vec2(0, 100), 2);
+		}
+	}
+}
+
+void CGameApp::EnemyMove()
+{
+	frameCounter++;
+
+	if (frameCounter == 3200)
+	{
+		frameCounter = 0;
+	}
+
+	for (auto enem : m_enemies) {
+		if (frameCounter <= 700) {
+			enem->Velocity() = Vec2(-20, 0);
+		}
+		else if (frameCounter <= 900) {
+			enem->Velocity() = Vec2(0, 20);
+		}
+		else if (frameCounter <= 2300) {
+			enem->Velocity() = Vec2(20, 0);
+		}
+		else if (frameCounter <= 2500) {
+			enem->Velocity() = Vec2(0, -20);
+		}
+		else if (frameCounter <= 3200) {
+			enem->Velocity() = Vec2(-20, 0);
+		}
+	}
 }

@@ -47,7 +47,7 @@ public:
 	//-------------------------------------------------------------------------
 	// Constructors & Destructors for This Class.
 	//-------------------------------------------------------------------------
-			 CPlayer(const BackBuffer *pBackBuffer, int x);
+			 CPlayer(const BackBuffer *pBackBuffer, const char* path);
 	virtual ~CPlayer();
 
 	//-------------------------------------------------------------------------
@@ -56,36 +56,35 @@ public:
 	void					Update( float dt );
 	void					Draw();
 	void					Move(ULONG ulDirection);
-	int                     fireCooldown = 30;
-	void                    Shoot(int x);
-	void                    fire(int x, int y);
 	Vec2&					Position();
 	Vec2&					Velocity();
-	int						playerIsDead();
 	int&					frameCounter();
-	int						positionWidth();
-	int						positionHeight();
+	Vec2					getSize();
 
 	void					Explode();
 	bool					AdvanceExplosion();
-	
-	Sprite*					bullet;
+
+	void					EnemyExplode();
+	bool					EnemyAdvanceExplosion();
+
+	bool					isDead;
+	int						lifes;
 
 private:
 	//-------------------------------------------------------------------------
 	// Private Variables for This Class.
 	//-------------------------------------------------------------------------
 	Sprite*					m_pSprite;
-	Sprite*					m_bSprite;
 	ESpeedStates			m_eSpeedState;
 	float					m_fTimer;
-	bool					isDead;
-
-	std::list<Sprite*>	    bullets;
 
 	bool					m_bExplosion;
 	AnimatedSprite*			m_pExplosionSprite;
 	int						m_iExplosionFrame;
+	
+	AnimatedSprite*			m_eExplosionSprite;
+	bool					m_beExplosion;
+	int						m_ieExplosionFrame;
 };
 
 #endif // _CPLAYER_H_

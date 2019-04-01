@@ -19,26 +19,15 @@ extern CGameApp g_App;
 // Name : CPlayer () (Constructor)
 // Desc : CPlayer Class Constructor
 //-----------------------------------------------------------------------------
-CPlayer::CPlayer(const BackBuffer *pBackBuffer, int x)
+CPlayer::CPlayer(const BackBuffer *pBackBuffer,const char* path)
 {
 	//m_pSprite = new Sprite("data/planeimg.bmp", "data/planemask.bmp");
-	if (x == 1)
-	{
-		m_pSprite = new Sprite("data/planeimgandmask.bmp", RGB(0xff, 0x00, 0xff));
-		m_pSprite->setBackBuffer(pBackBuffer);
-	}
-	else
-	{
-		m_pSprite = new Sprite("data/planeimgandmaskk.bmp", RGB(0xff, 0x00, 0xff));
-		m_pSprite->setBackBuffer(pBackBuffer);
-	}
-	
+	m_pSprite = new Sprite(path, RGB(0xff, 0x00, 0xff));
 	m_eSpeedState = SPEED_STOP;
 	m_fTimer = 0;
 	isDead = false;
 
-	bullet = new Sprite("data/bm.bmp", "data/bm.bmp");
-	bullet->setBackBuffer(pBackBuffer);
+	m_pSprite->setBackBuffer(pBackBuffer);
 
 	// Animation frame crop rectangle
 	RECT r;
@@ -48,12 +37,24 @@ CPlayer::CPlayer(const BackBuffer *pBackBuffer, int x)
 	r.bottom = 128;
 
 	m_pExplosionSprite	= new AnimatedSprite("data/explosion.bmp", "data/explosionmask.bmp", r, 16);
-	m_pExplosionSprite->setBackBuffer( pBackBuffer );
-	m_bExplosion		= false;
-	m_iExplosionFrame	= 0;
+	m_bExplosion = false;
+	m_iExplosionFrame = 0;
 
-	//m_bSprite = new Sprite("data/bullet.bmp", "data/bulletMask.bmp");
-	//m_bSprite->setBackBuffer(pBackBuffer);
+	m_pExplosionSprite->setBackBuffer( pBackBuffer );
+
+	//Alien explosion
+	RECT ra;
+	ra.left = 0;
+	ra.top = 0;
+	ra.right = 128;
+	ra.bottom = 128;
+
+	m_eExplosionSprite = new AnimatedSprite("data/alienexplosion.bmp", "data/alienexplosionmask.bmp", ra, 16);
+	m_beExplosion = false;
+	m_ieExplosionFrame = 0;
+
+	m_eExplosionSprite->setBackBuffer(pBackBuffer);
+	
 }
 
 //-----------------------------------------------------------------------------
@@ -64,7 +65,7 @@ CPlayer::~CPlayer()
 {
 	delete m_pSprite;
 	delete m_pExplosionSprite;
-	delete m_bSprite;
+	delete m_eExplosionSprite;
 }
 
 void CPlayer::Update(float dt)
@@ -119,13 +120,17 @@ void CPlayer::Update(float dt)
 
 void CPlayer::Draw()
 {
-	if (fireCooldown > 1) {
-		fireCooldown--;
-	}
-	if(!m_bExplosion)
+	if(!m_bExplosion && !m_beExplosion)
 		m_pSprite->draw();
-	else
+	else if(m_bExplosion)
+	{
 		m_pExplosionSprite->draw();
+	}
+	else if (m_beExplosion)
+	{
+		m_eExplosionSprite->draw();
+	}
+		
 }
 
 void CPlayer::Move(ULONG ulDirection)
@@ -160,7 +165,7 @@ void CPlayer::Move(ULONG ulDirection)
 		m_pSprite->mVelocity.y -= 5;
 	}
 
-	if (m_pSprite->mPosition.y + m_pSprite->height()/2 >= GetSystemMetrics(SM_CYSCREEN) - m_pSprite->height()/2)
+	if (m_pSprite->mPosition.y + m_pSprite->height() >= GetSystemMetrics(SM_CYSCREEN) - m_pSprite->height()/3 + 10)
 	{
 		m_pSprite->mVelocity.y = 0;
 		m_pSprite->mPosition.y = m_pSprite->mPosition.y - 1;
@@ -171,7 +176,6 @@ void CPlayer::Move(ULONG ulDirection)
 	}
 		
 }
-
 
 Vec2& CPlayer::Position()
 {
@@ -211,53 +215,41 @@ bool CPlayer::AdvanceExplosion()
 	return true;
 }
 
-int CPlayer::playerIsDead()
-{
-	return isDead;
-}
-
-void CPlayer::Shoot(int x)
-{
-	if (fireCooldown < 25) 
-	{
-		bullet = new Sprite("data/b.bmp", "data/bm.bmp");
-		bullet->setBackBuffer(g_App.m_pBBuffer);
-		if (x == 1) {
-			bullet->mPosition.y = m_pSprite->mPosition.y - m_pSprite->height() / 2;
-			bullet->mPosition.x = m_pSprite->mPosition.x;
-		}
-		else {
-			bullet->mPosition.y = m_pSprite->mPosition.y + m_pSprite->height() / 2;
-			bullet->mPosition.x = m_pSprite->mPosition.x;
-		}
-		bullets.push_back(bullet);
-		fireCooldown = 60;
-
-	}
-
-}
-
-void CPlayer::fire(int x, int y) {
-	for (Sprite* it : bullets) 
-	{
-		it->draw();
-		it->mPosition.y += x;
-		it->mVelocity.y = x;
-		it->mPosition.x += y;
-		it->mVelocity.x = y;
-	}
-}
-
 int& CPlayer::frameCounter() {
 	return m_pSprite->frameCounter;
 }
 
-int CPlayer::positionWidth()
+Vec2 CPlayer::getSize()
 {
-	return m_pSprite->width();
+	return Vec2(m_pSprite->width(), m_pSprite->height());
 }
 
-int CPlayer::positionHeight()
+
+void CPlayer::EnemyExplode()
 {
-	return m_pSprite->height();
+	m_eExplosionSprite->SetFrameEnemy(0);
+	m_eExplosionSprite->mPosition = m_pSprite->mPosition;
+	m_pSprite->mVelocity.x = 0;
+	m_pSprite->mVelocity.y = 0;
+	PlaySound("data/explosion.wav", NULL, SND_FILENAME | SND_ASYNC);
+	m_beExplosion = true;
 }
+
+bool CPlayer::EnemyAdvanceExplosion()
+{
+	if (m_beExplosion)
+	{
+		m_eExplosionSprite->SetFrameEnemy(m_ieExplosionFrame++);
+		if (m_ieExplosionFrame == m_eExplosionSprite->GetFrameCount())
+		{
+			isDead = true;
+			m_beExplosion = false;
+			m_ieExplosionFrame = 0;
+			m_eSpeedState = SPEED_STOP;
+			return false;
+		}
+	}
+
+	return true;
+}
+
