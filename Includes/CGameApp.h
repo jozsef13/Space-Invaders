@@ -17,6 +17,7 @@
 #include "CPlayer.h"
 #include "BackBuffer.h"
 #include "ImageFile.h"
+#include "ScoreSprite.h"
 
 //-----------------------------------------------------------------------------
 // Forward Declarations
@@ -47,6 +48,14 @@ public:
 	int		 BeginGame( );
 	bool		ShutDown( );
 
+	enum GameState {
+		START,
+		ONGOING,
+		LOST,
+		WON,
+		PAUSE
+	};
+
 	BackBuffer*				m_pBBuffer;
 	
 private:
@@ -70,6 +79,8 @@ private:
 	bool		detectBulletCollision(const Sprite* bullet);
 	void		enemyFire();
 	void		EnemyMove();
+	void		setPLives(int livesP1, int livesP2);
+	void		updateGameState();
 
 	
 	//-------------------------------------------------------------------------
@@ -104,12 +115,21 @@ private:
 	CPlayer*				m_pPlayer2;
 	std::list<CPlayer*>		m_enemies;
 
+	std::list<Sprite*>		m_livesGreen;		// Lives for green player
+	std::list<Sprite*>		m_livesRed;			// Lives for red player
+
+	ScoreSprite*			m_scoreP1;			// Score for the player 1
+	ScoreSprite*			m_scoreP2;			// Score for the player 2
+
 	std::list<Sprite*>		bullets;
-	std::list<Sprite*>		aliensExplosion;
 	int						frameCounter = 0;
 
 	std::list<Sprite*>		p1Life;
 	std::list<Sprite*>		p2Life;
+
+	GameState					m_gameState;			// Game state (ongoing, won, lost)
+	Sprite*						m_wonSprite;			// Information to be displayed when game is won
+	Sprite*						m_lostSprite;		// Information to be displayed when game is lost
 
 };
 

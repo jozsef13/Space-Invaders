@@ -44,6 +44,8 @@ public:
 		SPEED_STOP
 	};
 
+	DIRECTION rotateDirection; //direction of rotation
+
 	//-------------------------------------------------------------------------
 	// Constructors & Destructors for This Class.
 	//-------------------------------------------------------------------------
@@ -66,9 +68,13 @@ public:
 
 	void					EnemyExplode();
 	bool					EnemyAdvanceExplosion();
-
+	void					takeDamage();
+	int						getLives();
+	void					setLives(int noLives);
+	bool					hasExploded();
+	bool					enemyHasExploded();
+	void					Rotate(int x);
 	bool					isDead;
-	int						lifes;
 
 private:
 	//-------------------------------------------------------------------------
@@ -77,6 +83,7 @@ private:
 	Sprite*					m_pSprite;
 	ESpeedStates			m_eSpeedState;
 	float					m_fTimer;
+	int						lives;
 
 	bool					m_bExplosion;
 	AnimatedSprite*			m_pExplosionSprite;

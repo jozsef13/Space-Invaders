@@ -16,7 +16,7 @@
 extern HINSTANCE g_hInst;
 bool		p1Shoot = false;
 bool		p2Shoot = false;
-
+static UINT fTimer;
 //-----------------------------------------------------------------------------
 // CGameApp Member Functions
 //-----------------------------------------------------------------------------
@@ -33,6 +33,10 @@ CGameApp::CGameApp()
 	m_pBBuffer		= NULL;
 	m_pPlayer		= NULL;
 	m_pPlayer2		= NULL;
+	m_scoreP1		= NULL;
+	m_scoreP2		= NULL;
+	m_wonSprite = NULL;
+	m_lostSprite = NULL;
 	m_LastFrameRate = 0;
 }
 
@@ -155,7 +159,7 @@ int CGameApp::BeginGame()
 
 	return 0;
 }
-
+	
 //-----------------------------------------------------------------------------
 // Name : ShutDown ()
 // Desc : Shuts down the game engine, and frees up all resources.
@@ -263,13 +267,11 @@ LRESULT CGameApp::DisplayWndProc( HWND hWnd, UINT Message, WPARAM wParam, LPARAM
 			case VK_ESCAPE:
 				PostQuitMessage(0);
 				break;
-			case VK_RETURN:
-				fTimer = SetTimer(m_hWnd, 1, 100, NULL);
-				m_pPlayer->Explode();
+			case 'B':
+				m_pPlayer->Rotate(1);
 				break;
-			case 0x51:
-				fTimer = SetTimer(m_hWnd, 1, 100, NULL);
-				m_pPlayer2->Explode();
+			case 'R':
+				m_pPlayer2->Rotate(2);
 				break;
 			}
 			break;
@@ -278,18 +280,14 @@ LRESULT CGameApp::DisplayWndProc( HWND hWnd, UINT Message, WPARAM wParam, LPARAM
 			switch (wParam)
 			{
 			case 1:
-				if (!m_pPlayer->AdvanceExplosion()) {
-					fTimer = SetTimer(m_hWnd, 1, 100, NULL);
-				}
-				if (!m_pPlayer2->AdvanceExplosion()) {
-					fTimer = SetTimer(m_hWnd, 1, 100, NULL);
-				}
+				if (!m_pPlayer->AdvanceExplosion()) 
+					fTimer = SetTimer(m_hWnd, 1, 70, NULL);
+				if (!m_pPlayer2->AdvanceExplosion())
+					fTimer = SetTimer(m_hWnd, 1, 70, NULL);
 				for (auto enem : m_enemies)
 				{
-					if (enem->EnemyAdvanceExplosion())
-					{
-						fTimer = SetTimer(m_hWnd, 1, 100, NULL);
-					}
+					if (!enem->EnemyAdvanceExplosion())
+						fTimer = SetTimer(m_hWnd, 1, 70, NULL);
 				}
 			}
 			break;
@@ -314,8 +312,18 @@ bool CGameApp::BuildObjects()
 	m_pBBuffer = new BackBuffer(m_hWnd, m_nViewWidth, m_nViewHeight);
 	m_pPlayer = new CPlayer(m_pBBuffer, "data/ship1.bmp");
 	m_pPlayer2 = new CPlayer(m_pBBuffer, "data/ship2.bmp");
+	m_scoreP1 = new ScoreSprite(Vec2(190, 690), m_pBBuffer);
+	m_wonSprite = new Sprite("data/winscreen.bmp", RGB(0xff, 0x00, 0xff));
+	m_lostSprite = new Sprite("data/losescreen.bmp", RGB(0xff, 0x00, 0xff));
+
+	m_scoreP2 = new ScoreSprite(Vec2(m_screenSize.x - 180, 690.0), m_pBBuffer);
 
 	addEnemies(ceil((m_screenSize.x - 600) / 100) * 4);
+
+	m_wonSprite->setBackBuffer(m_pBBuffer);
+	m_lostSprite->setBackBuffer(m_pBBuffer);
+
+	setPLives(3, 3);
 
 	if(!m_imgBackground.LoadBitmapFromFile("data/Background.bmp", GetDC(m_hWnd)))
 		return false;
@@ -332,6 +340,14 @@ void CGameApp::SetupGameState()
 {
 	m_pPlayer->Position() = Vec2(600, 700);
 	m_pPlayer2->Position() = Vec2(900, 700);
+
+	m_pPlayer->frameCounter() = 200;
+	m_pPlayer2->frameCounter() = 200;
+
+	m_wonSprite->mPosition = Vec2(int(m_screenSize.x / 2), int(m_screenSize.y / 2));
+	m_lostSprite->mPosition = Vec2(int(m_screenSize.x / 2), int(m_screenSize.y / 2));
+
+	m_gameState = GameState::ONGOING;
 }
 
 //-----------------------------------------------------------------------------
@@ -353,12 +369,36 @@ void CGameApp::ReleaseObjects( )
 		m_pPlayer2 = NULL;
 	}
 
-	if(m_pBBuffer != NULL)
+	if (m_scoreP1 != NULL) {
+		delete m_scoreP1;
+		m_scoreP1 = NULL;
+	}
+
+	if (m_scoreP2 != NULL) {
+		delete m_scoreP2;
+		m_scoreP2 = NULL;
+	}
+
+	if (m_wonSprite != NULL) {
+		delete m_wonSprite;
+		m_wonSprite = NULL;
+	}
+
+	if (m_lostSprite != NULL) {
+		delete m_lostSprite;
+		m_lostSprite = NULL;
+	}
+
+	while (!m_enemies.empty()) delete m_enemies.front(), m_enemies.pop_front();
+	while (!bullets.empty()) delete bullets.front(), bullets.pop_front();
+	while (!m_livesGreen.empty()) delete m_livesGreen.front(), m_livesGreen.pop_front();
+	while (!m_livesRed.empty()) delete m_livesRed.front(), m_livesRed.pop_front();
+
+	if (m_pBBuffer != NULL)
 	{
 		delete m_pBBuffer;
 		m_pBBuffer = NULL;
 	}
-
 }
 
 //-----------------------------------------------------------------------------
@@ -414,34 +454,30 @@ void CGameApp::ProcessInput( )
 	if ( !GetKeyboardState( pKeyBuffer ) ) return;
 
 	// Check the relevant keys
-	if ( pKeyBuffer[ VK_UP	] & 0xF0 ) Direction |= CPlayer::DIR_FORWARD;
-	if ( pKeyBuffer[ VK_DOWN  ] & 0xF0 ) Direction |= CPlayer::DIR_BACKWARD;
-	if ( pKeyBuffer[ VK_LEFT  ] & 0xF0 ) Direction |= CPlayer::DIR_LEFT;
-	if ( pKeyBuffer[ VK_RIGHT ] & 0xF0 ) Direction |= CPlayer::DIR_RIGHT;
-	if (pKeyBuffer[VK_SPACE] & 0xF0)
+	if (!m_pPlayer->isDead)
 	{
-		p1Shoot = true;
-	}
-	else
-	{
-		if (p1Shoot)
+		if (pKeyBuffer[VK_UP] & 0xF0) Direction |= CPlayer::DIR_FORWARD;
+		if (pKeyBuffer[VK_DOWN] & 0xF0) Direction |= CPlayer::DIR_BACKWARD;
+		if (pKeyBuffer[VK_LEFT] & 0xF0) Direction |= CPlayer::DIR_LEFT;
+		if (pKeyBuffer[VK_RIGHT] & 0xF0) Direction |= CPlayer::DIR_RIGHT;
+		if (pKeyBuffer[VK_SPACE] & 0xF0 && m_pPlayer->frameCounter() >= 50)
+		{
 			fireBullet(m_pPlayer->Position(), Vec2(0, -250), 1);
-		p1Shoot = false;
+			m_pPlayer->frameCounter() = 0;
+		}
 	}
 
-	if (pKeyBuffer[0x57] & 0xF0) Direction1 |= CPlayer::DIR_FORWARD;
-	if (pKeyBuffer[0x53] & 0xF0) Direction1 |= CPlayer::DIR_BACKWARD;
-	if (pKeyBuffer[0x41] & 0xF0) Direction1 |= CPlayer::DIR_LEFT;
-	if (pKeyBuffer[0x44] & 0xF0) Direction1 |= CPlayer::DIR_RIGHT;
-	if (pKeyBuffer['P'] & 0xF0)
+	if (!m_pPlayer2->isDead)
 	{
-		p2Shoot = true;
-	}
-	else
-	{
-		if (p2Shoot)
-			fireBullet(m_pPlayer2->Position(), Vec2(0, -250), 1);
-		p2Shoot = false;
+		if (pKeyBuffer[0x57] & 0xF0) Direction1 |= CPlayer::DIR_FORWARD;
+		if (pKeyBuffer[0x53] & 0xF0) Direction1 |= CPlayer::DIR_BACKWARD;
+		if (pKeyBuffer[0x41] & 0xF0) Direction1 |= CPlayer::DIR_LEFT;
+		if (pKeyBuffer[0x44] & 0xF0) Direction1 |= CPlayer::DIR_RIGHT;
+		if (pKeyBuffer['P'] & 0xF0 && m_pPlayer2->frameCounter() >= 50)
+		{
+			fireBullet(m_pPlayer2->Position(), Vec2(0, -250), 2);
+			m_pPlayer2->frameCounter() = 0;
+		}
 	}
 	
 	// Move the player
@@ -470,26 +506,52 @@ void CGameApp::ProcessInput( )
 //-----------------------------------------------------------------------------
 void CGameApp::AnimateObjects()
 {
-	m_pPlayer->Update(m_Timer.GetTimeElapsed());
-	m_pPlayer2->Update(m_Timer.GetTimeElapsed());
-
-	for (auto bul : bullets)
+	updateGameState();
+	switch (m_gameState)
 	{
-		bul->update(m_Timer.GetTimeElapsed());
-
-		if (detectBulletCollision(bul) || bul->mPosition.y >= m_screenSize.y || bul->mPosition.y <= 0)
+	case GameState::ONGOING:
+		if (!m_pPlayer->isDead)
 		{
-			bullets.remove(bul);
-			break;
+			m_pPlayer->Update(m_Timer.GetTimeElapsed());
+			m_pPlayer->frameCounter()++;
 		}
-	}
+		
+		if (!m_pPlayer2->isDead)
+		{
+			m_pPlayer2->Update(m_Timer.GetTimeElapsed());
+			m_pPlayer2->frameCounter()++;
+		}
+		
+		for (auto bul : bullets)
+		{
+			bul->update(m_Timer.GetTimeElapsed());
 
-	EnemyMove();
-	for (auto enem : m_enemies) {
-		enem->Update(m_Timer.GetTimeElapsed());
-	}
+			if (detectBulletCollision(bul) || bul->mPosition.y >= m_screenSize.y || bul->mPosition.y <= 0)
+			{
+				bullets.remove(bul);
+				break;
+			}
+		}
 
-	enemyFire();
+		EnemyMove();
+		
+		for (auto enem : m_enemies) {
+			enem->Update(m_Timer.GetTimeElapsed());
+		}
+
+		enemyFire();
+		break;
+	
+	case GameState::WON:
+		m_scoreP1->move(Vec2(m_screenSize.x / 2 - 150, m_screenSize.y / 2 + 200));
+		m_scoreP2->move(Vec2(m_screenSize.x / 2 + 150, m_screenSize.y / 2 + 200));
+		break;
+	
+	case GameState::LOST:
+		m_scoreP1->move(Vec2(m_screenSize.x / 2 - 150, m_screenSize.y / 2 + 200));
+		m_scoreP2->move(Vec2(m_screenSize.x / 2 + 150, m_screenSize.y / 2 + 200));
+		break;
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -502,19 +564,47 @@ void CGameApp::DrawObjects()
 
 	m_imgBackground.Paint(m_pBBuffer->getDC(), 0, 0);
 
-	m_pPlayer->Draw();
-
-	m_pPlayer2->Draw();
-
-	for (auto bul : bullets)
+	switch (m_gameState)
 	{
-		bul->draw();
-	}
+	case GameState::START:
+		break;
+	case GameState::ONGOING:
+		m_scoreP1->draw();
+		m_scoreP2->draw();
 
-	for (auto enem : m_enemies) 
-	{
-		enem->Draw();
-		enem->frameCounter()++;
+		if (!m_pPlayer->isDead) m_pPlayer->Draw();
+
+		if (!m_pPlayer2->isDead) m_pPlayer2->Draw();
+
+		for (auto lg : m_livesGreen) lg->draw();
+
+		for (auto lr : m_livesRed) lr->draw();
+
+		for (auto bul : bullets)
+		{
+			bul->draw();
+		}
+
+		for (auto enem : m_enemies)
+		{
+			enem->Draw();
+			enem->frameCounter()++;
+		}
+		break;
+	case GameState::LOST:
+		m_scoreP1->draw();
+		m_scoreP2->draw();
+
+		m_lostSprite->draw();
+		break;
+	case GameState::WON:
+		m_scoreP1->draw();
+		m_scoreP2->draw();
+
+		m_wonSprite->draw();
+		break;
+	default:
+		break;
 	}
 	
 	m_pBBuffer->present();
@@ -558,6 +648,19 @@ void CGameApp::addEnemies(int noEnemies)
 
 void CGameApp::removeDead()
 {
+
+	if (!m_pPlayer->getLives() && !m_pPlayer->hasExploded())
+	{
+		fTimer = SetTimer(m_hWnd, 1, 70, NULL);
+		m_pPlayer->Explode();
+	}
+
+	if (!m_pPlayer2->getLives() && !m_pPlayer2->hasExploded())
+	{
+		fTimer = SetTimer(m_hWnd, 1, 70, NULL);
+		m_pPlayer2->Explode();
+	}
+
 	for (auto enem : m_enemies)
 	{
 		if (enem->isDead)
@@ -592,22 +695,49 @@ bool CGameApp::Collision(CPlayer* p1, CPlayer* p2)
 
 bool CGameApp::detectBulletCollision(const Sprite* bullet)
 {
-	if (bulletCollision(*bullet, *m_pPlayer) && bullet->team != 1)
+
+	if (bulletCollision(*bullet, *m_pPlayer) && bullet->team == 3 && !m_pPlayer->hasExploded() && m_livesGreen.size() > 0)
 	{
-		m_pPlayer->Explode();
+		m_pPlayer->takeDamage();
+		
+		delete m_livesGreen.back();
+		m_livesGreen.pop_back();
+		
 		return true;
 	}
 
-	if (bulletCollision(*bullet, *m_pPlayer2) && bullet->team != 1)
+	if (bulletCollision(*bullet, *m_pPlayer2) && bullet->team == 3 && !m_pPlayer2->hasExploded() && m_livesRed.size() > 0)
 	{
-		m_pPlayer2->Explode();
+		m_pPlayer2->takeDamage();
+		
+		delete m_livesRed.back();
+		m_livesRed.pop_back();
+		
 		return true;
 	}
 
 	for (auto enem : m_enemies)
 	{
-		if (bulletCollision(*bullet, *enem) && bullet->team == 1)
+		if (bulletCollision(*bullet, *enem) && bullet->team != 3)
 		{
+			if (enem->enemyHasExploded())
+			{
+				return false;
+			}
+			
+			if (bullet->team == 1)
+			{
+				m_scoreP1->updateScore(100);
+			}
+			else if (bullet->team == 2)
+			{
+				m_scoreP2->updateScore(100);
+			}
+			else
+			{
+				return false;
+			}
+			fTimer = SetTimer(m_hWnd, 1, 70, NULL);
 			enem->EnemyExplode();
 			return true;
 		}
@@ -631,6 +761,10 @@ bool CGameApp::bulletCollision(const Sprite& bullet, CPlayer& p1)
 void CGameApp::fireBullet(const Vec2 position, const Vec2 velocity, int x)
 {
 	if (x == 1)
+	{
+		bullets.push_back(new Sprite("data/bullet.bmp", RGB(0xff, 0x00, 0xff)));
+	}
+	else if (x == 2)
 	{
 		bullets.push_back(new Sprite("data/bullet.bmp", RGB(0xff, 0x00, 0xff)));
 	}
@@ -663,7 +797,7 @@ void CGameApp::enemyFire()
 		if (enem->frameCounter() == 1500)
 		{
 			enem->frameCounter() = rand() % 1000;
-			fireBullet(enem->Position(), Vec2(0, 100), 2);
+			fireBullet(enem->Position(), Vec2(0, 100), 3);
 		}
 	}
 }
@@ -693,5 +827,50 @@ void CGameApp::EnemyMove()
 		else if (frameCounter <= 3200) {
 			enem->Velocity() = Vec2(-20, 0);
 		}
+	}
+}
+
+void CGameApp::setPLives(int livesP1, int livesP2)
+{
+	m_pPlayer->setLives(livesP1);
+	m_pPlayer2->setLives(livesP2);
+
+	Vec2 greenPos(30, 770);
+	Vec2 redPos(m_screenSize.x - 50, 770.0);
+	Vec2 increment(30, 0);
+
+	for (int it = 0; it != livesP1; ++it) {
+		m_livesGreen.push_back(new Sprite("data/heart.bmp", RGB(0xff, 0x00, 0xff)));
+		auto& lastGreen = m_livesGreen.back();
+
+		lastGreen->mPosition = greenPos;
+		lastGreen->mVelocity = Vec2(0, 0);
+		lastGreen->setBackBuffer(m_pBBuffer);
+
+		greenPos += increment;
+	}
+
+	for (int it = 0; it != livesP2; ++it) {
+		m_livesRed.push_back(new Sprite("data/heart.bmp", RGB(0xff, 0x00, 0xff)));
+		auto& lastRed = m_livesRed.back();
+
+		lastRed->mPosition = redPos;
+		lastRed->mVelocity = Vec2(0, 0);
+		lastRed->setBackBuffer(m_pBBuffer);
+
+		redPos -= increment;
+	}
+}
+
+void CGameApp::updateGameState()
+{
+	if (m_pPlayer->isDead && m_pPlayer2->isDead && m_gameState == ONGOING) {
+		m_gameState = LOST;
+	}
+	else if (!m_enemies.size() && m_gameState == ONGOING) {
+		m_gameState = WON;
+	}
+	else if (m_gameState == ONGOING) {
+		m_gameState = ONGOING;
 	}
 }

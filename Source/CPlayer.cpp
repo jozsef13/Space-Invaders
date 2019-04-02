@@ -19,13 +19,14 @@ extern CGameApp g_App;
 // Name : CPlayer () (Constructor)
 // Desc : CPlayer Class Constructor
 //-----------------------------------------------------------------------------
-CPlayer::CPlayer(const BackBuffer *pBackBuffer,const char* path)
+CPlayer::CPlayer(const BackBuffer *pBackBuffer,const char* path) : rotateDirection(DIRECTION::DIR_FORWARD)
 {
 	//m_pSprite = new Sprite("data/planeimg.bmp", "data/planemask.bmp");
 	m_pSprite = new Sprite(path, RGB(0xff, 0x00, 0xff));
 	m_eSpeedState = SPEED_STOP;
 	m_fTimer = 0;
 	isDead = false;
+	lives = 1;
 
 	m_pSprite->setBackBuffer(pBackBuffer);
 
@@ -165,7 +166,7 @@ void CPlayer::Move(ULONG ulDirection)
 		m_pSprite->mVelocity.y -= 5;
 	}
 
-	if (m_pSprite->mPosition.y + m_pSprite->height() >= GetSystemMetrics(SM_CYSCREEN) - m_pSprite->height()/3 + 10)
+	if (m_pSprite->mPosition.y + m_pSprite->height() >= GetSystemMetrics(SM_CYSCREEN) - m_pSprite->height()/3 - 40)
 	{
 		m_pSprite->mVelocity.y = 0;
 		m_pSprite->mPosition.y = m_pSprite->mPosition.y - 1;
@@ -202,6 +203,7 @@ bool CPlayer::AdvanceExplosion()
 	if(m_bExplosion)
 	{
 		m_pExplosionSprite->SetFrame(m_iExplosionFrame++);
+		
 		if(m_iExplosionFrame==m_pExplosionSprite->GetFrameCount())
 		{
 			isDead = true;
@@ -253,3 +255,89 @@ bool CPlayer::EnemyAdvanceExplosion()
 	return true;
 }
 
+void CPlayer::takeDamage()
+{
+	lives--;
+}
+
+int CPlayer::getLives()
+{
+	return lives;
+}
+
+void CPlayer::setLives(int noLives)
+{
+	lives = noLives;
+}
+
+bool CPlayer::hasExploded()
+{
+	return m_bExplosion;
+}
+
+bool CPlayer::enemyHasExploded()
+{
+	return m_beExplosion;
+}
+
+void CPlayer::Rotate(int x)
+{
+	auto position = m_pSprite->mPosition;
+	auto velocity = m_pSprite->mVelocity;
+
+	switch (rotateDirection)
+	{
+	case CPlayer::DIR_FORWARD:
+		if (x == 1)
+		{
+			m_pSprite = new Sprite("data/ship1r.bmp", RGB(0xff, 0x00, 0xff));
+			rotateDirection = CPlayer::DIR_LEFT;
+		}
+		else
+		{
+			m_pSprite = new Sprite("data/ship2r.bmp", RGB(0xff, 0x00, 0xff));
+			rotateDirection = CPlayer::DIR_LEFT;
+		}
+		break;
+	case CPlayer::DIR_BACKWARD:
+		if (x == 1)
+		{
+			m_pSprite = new Sprite("data/ship1rrr.bmp", RGB(0xff, 0x00, 0xff));
+			rotateDirection = CPlayer::DIR_RIGHT;
+		}
+		else
+		{
+			m_pSprite = new Sprite("data/ship2rrr.bmp", RGB(0xff, 0x00, 0xff));
+			rotateDirection = CPlayer::DIR_RIGHT;
+		}
+		break;
+	case CPlayer::DIR_LEFT:
+		if (x == 1)
+		{
+			rotateDirection = CPlayer::DIR_BACKWARD;
+			m_pSprite = new Sprite("data/ship1rr.bmp", RGB(0xff, 0x00, 0xff));
+		}
+		else
+		{
+			rotateDirection = CPlayer::DIR_BACKWARD;
+			m_pSprite = new Sprite("data/ship2rr.bmp", RGB(0xff, 0x00, 0xff));
+		}
+		break;
+	case CPlayer::DIR_RIGHT:
+		if (x == 1)
+		{
+			rotateDirection = CPlayer::DIR_FORWARD;
+			m_pSprite = new Sprite("data/ship1.bmp", RGB(0xff, 0x00, 0xff));
+		}
+		else
+		{
+			rotateDirection = CPlayer::DIR_FORWARD;
+			m_pSprite = new Sprite("data/ship2.bmp", RGB(0xff, 0x00, 0xff));
+		}
+		break;
+	}
+
+	m_pSprite->mPosition = position;
+	m_pSprite->mVelocity = velocity;
+	m_pSprite->setBackBuffer(g_App.m_pBBuffer);
+}

@@ -1,16 +1,16 @@
 ﻿cl : Command line warning D9035: option 'Gm' has been deprecated and will be removed in a future release
   CGameApp.cpp
-e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(86): warning C4244: 'initializing': conversion from 'LONG' to 'USHORT', possible loss of data
-e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(87): warning C4244: 'initializing': conversion from 'LONG' to 'USHORT', possible loss of data
-e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(318): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
-e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(526): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
-e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(574): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
-e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(575): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
-e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(576): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
-e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(577): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
-e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(580): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
-e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(581): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
-e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(582): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
-e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(583): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
-e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(659): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(90): warning C4244: 'initializing': conversion from 'LONG' to 'USHORT', possible loss of data
+e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(91): warning C4244: 'initializing': conversion from 'LONG' to 'USHORT', possible loss of data
+e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(321): warning C4244: 'argument': conversion from 'double' to 'int', possible loss of data
+e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(616): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(677): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
+e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(678): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
+e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(679): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
+e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(680): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
+e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(683): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
+e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(684): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
+e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(685): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
+e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(686): warning C4244: '=': conversion from 'double' to 'LONG', possible loss of data
+e:\documents\automatica\anul ii\semestrul ii\computer graphics\gameframework 2.0\source\cgameapp.cpp(793): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
   Game.vcxproj -> E:\Documents\AUTOMATICA\Anul II\Semestrul II\Computer Graphics\GameFramework 2.0\d_Game.exe

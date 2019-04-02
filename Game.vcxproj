@@ -171,6 +171,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="Source\ResizeEngine.cpp" />
+    <ClCompile Include="Source\ScoreSprite.cpp" />
     <ClCompile Include="Source\Sprite.cpp" />
     <ClCompile Include="Source\Vec2.cpp" />
   </ItemGroup>
@@ -183,6 +184,7 @@
     <ClInclude Include="Includes\ImageFile.h" />
     <ClInclude Include="Includes\Main.h" />
     <ClInclude Include="Includes\ResizeEngine.h" />
+    <ClInclude Include="Includes\ScoreSprite.h" />
     <ClInclude Include="Includes\Sprite.h" />
     <ClInclude Include="Includes\Vec2.h" />
     <ClInclude Include="Res\resource.h" />
